@@ -11,10 +11,10 @@ A browser-based toolkit for exploring tabletop dice-pool probabilities and rolli
 
 ## Run locally
 
-Open [index.html](index.html) in a browser. The two tools are also available directly:
+Open [index.html](docs/index.html) in a browser. The two tools are also available directly:
 
-- [Probability Explorer](dice_pool_probability_distribution_visualizer.html)
-- [Dice Pool Roller](custom_dice_pool_roller_probability_visualizer.html)
+- [Probability Explorer](docs/dice_pool_probability_distribution_visualizer.html)
+- [Dice Pool Roller](docs/custom_dice_pool_roller_probability_visualizer.html)
 
 ## Probability method
 
