@@ -1,3 +1,5 @@
+https://mmalone3.github.io/dice-toolkit/
+
 # Dice Toolkit
 
 A browser-based toolkit for exploring tabletop dice-pool probabilities and rolling custom dice pools. The site is built with plain HTML, CSS, and JavaScript; no build step or external dependencies are required.
