@@ -32,7 +32,3 @@ P(X = i) = C(total_dice, i) * p^i * (1 - p)^(total_dice - i)
 
 The method is based on the Python example shared by Bob Klemm:
 [dice_rolling.py](https://github.com/rjklemm/Python-math-and-physics-projects-2024-to-present/blob/main/dice_rolling.py).
-
-## Deployment
-
-The repository includes a GitHub Actions workflow at `.github/workflows/pages.yml` to deploy the static site to GitHub Pages when changes are pushed to `main`. In the repository settings, configure **Pages → Build and deployment → Source** to **GitHub Actions** if it is not already enabled.
