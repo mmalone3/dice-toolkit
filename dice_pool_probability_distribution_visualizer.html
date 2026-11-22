@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dice Pool Probability Visualizer</title>
+  <style>
+    /* Reset & Base Styles */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-app: #0b0f19;
+      --bg-surface: #111827;
+      --bg-surface-elevated: #1e293b;
+      --bg-input: #0f172a;
+      --border-subtle: #1e293b;
+      --border-strong: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-emerald: #10b981;
+      --accent-emerald-glow: rgba(16, 185, 129, 0.2);
+      --accent-emerald-hover: #34d399;
+      --accent-indigo: #6366f1;
+      --accent-indigo-glow: rgba(99, 102, 241, 0.25);
+      --accent-amber: #f59e0b;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-app);
+      color: var(--text-primary);
+      line-height: 1.5;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding-bottom: 3rem;
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+    }
+
+    /* Layout Container */
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 1.25rem;
+    }
+
+    @media (min-width: 768px) {
+      .container {
+        padding: 2rem;
+      }
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 1.75rem;
+    }
+
+    @media (min-width: 768px) {
+      header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .title-group h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+    }
+
+    @media (min-width: 768px) {
+      .title-group h1 {
+        font-size: 1.75rem;
+      }
+    }
+
+    .title-group p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+    }
+
+    .preset-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    /* Buttons */
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid var(--border-strong);
+      background-color: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      border-radius: 0.5rem;
+      padding: 0.5rem 0.875rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+      min-height: 36px;
+    }
+
+    button:hover {
+      border-color: var(--accent-emerald);
+      background-color: #263349;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button.active {
+      background-color: var(--accent-emerald);
+      border-color: var(--accent-emerald);
+      color: #064e3b;
+      font-weight: 700;
+      box-shadow: 0 0 14px var(--accent-emerald-glow);
+    }
+
+    button.preset-btn {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      background-color: rgba(99, 102, 241, 0.12);
+      border-color: rgba(99, 102, 241, 0.4);
+      color: #c7d2fe;
+    }
+
+    button.preset-btn:hover {
+      background-color: rgba(99, 102, 241, 0.25);
+      border-color: var(--accent-indigo);
+      color: #ffffff;
+    }
+
+    /* Main Grid */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 1024px) {
+      .dashboard-grid {
+        grid-template-columns: 360px 1fr;
+        align-items: start;
+      }
+    }
+
+    /* Cards */
+    .card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 0.875rem;
+      padding: 1.25rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    @media (min-width: 768px) {
+      .card {
+        padding: 1.5rem;
+      }
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+
+    /* Controls Section */
+    .control-block {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .control-block:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .control-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.625rem;
+    }
+
+    .control-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .control-sublabel {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .num-input {
+      width: 4.5rem;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-strong);
+      color: var(--accent-emerald);
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 0.35rem 0.5rem;
+      border-radius: 0.45rem;
+      text-align: right;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .num-input:focus {
+      border-color: var(--accent-emerald);
+    }
+
+    /* Polyhedral Quick Buttons */
+    .dice-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.45rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .dice-btn {
+      padding: 0.4rem 0.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      min-height: 36px;
+    }
+
+    /* Range Sliders */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--bg-input);
+      border-radius: 999px;
+      border: 1px solid var(--border-strong);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      cursor: pointer;
+      border: 2px solid #064e3b;
+      box-shadow: 0 0 8px var(--accent-emerald-glow);
+      transition: transform 0.1s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      cursor: pointer;
+      border: 2px solid #064e3b;
+    }
+
+    .range-ticks {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+    }
+
+    /* Visual Die Face Indicator */
+    .die-faces-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin-top: 0.75rem;
+      max-height: 84px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    .face-chip {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 0.3rem;
+      border: 1px solid var(--border-strong);
+      color: var(--text-muted);
+      background-color: var(--bg-input);
+      user-select: none;
+    }
+
+    .face-chip.success {
+      background-color: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.5);
+      color: var(--accent-emerald-hover);
+      font-weight: 600;
+    }
+
+    /* Formula Box */
+    .formula-box {
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-strong);
+      border-radius: 0.625rem;
+      padding: 0.875rem;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .formula-highlight {
+      color: var(--accent-emerald);
+      font-weight: 600;
+    }
+
+    /* Right Column Content */
+    .right-column {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      min-width: 0;
+    }
+
+    /* Summary KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.875rem;
+    }
+
+    @media (min-width: 640px) {
+      .kpi-grid {
+        grid-template-columns: repeat(5, 1fr);
+      }
+    }
+
+    .kpi-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .kpi-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-secondary);
+      margin-bottom: 0.35rem;
+    }
+
+    .kpi-value {
+      font-family: var(--font-mono);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .kpi-value.emerald {
+      color: var(--accent-emerald);
+    }
+
+    .kpi-value.indigo {
+      color: #818cf8;
+    }
+
+    .kpi-sub {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* Chart Controls & Legend */
+    .mode-toggle {
+      display: inline-flex;
+      background-color: var(--bg-input);
+      padding: 0.25rem;
+      border-radius: 0.55rem;
+      border: 1px solid var(--border-strong);
+    }
+
+    .mode-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 0.35rem 0.75rem;
+      font-size: 0.78rem;
+      border-radius: 0.4rem;
+      min-height: 30px;
+    }
+
+    .mode-btn:hover {
+      background: transparent;
+      color: var(--text-primary);
+    }
+
+    .mode-btn.active-exact {
+      background-color: var(--accent-emerald);
+      color: #064e3b;
+      font-weight: 700;
+    }
+
+    .mode-btn.active-cum {
+      background-color: var(--accent-indigo);
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    /* Interactive Chart Area */
+    .chart-wrapper {
+      position: relative;
+      width: 100%;
+      height: 330px;
+      margin-top: 0.5rem;
+      user-select: none;
+    }
+
+    svg#distChart {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
+    }
+
+    .chart-bar {
+      transition: height 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+                  y 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+                  fill 0.15s ease;
+      cursor: pointer;
+    }
+
+    .chart-bar-hit {
+      fill: transparent;
+      cursor: pointer;
+    }
+
+    /* Inspected Bar Banner */
+    .inspector-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-strong);
+      border-radius: 0.625rem;
+      padding: 0.75rem 1rem;
+      margin-top: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .inspector-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+    }
+
+    .inspector-item span.lbl {
+      color: var(--text-muted);
+    }
+
+    .inspector-item span.val {
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+
+    /* Python Array Output Box */
+    .python-output-card {
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-strong);
+      border-radius: 0.625rem;
+      padding: 0.875rem 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .python-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      gap: 0.5rem;
+    }
+
+    .python-signature {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: #a5b4fc;
+    }
+
+    .python-array-text {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--accent-emerald);
+      word-break: break-all;
+      line-height: 1.5;
+      max-height: 90px;
+      overflow-y: auto;
+    }
+
+    /* Data Table */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--border-strong);
+      border-radius: 0.625rem;
+      max-height: 380px;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.84rem;
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      background-color: var(--bg-surface-elevated);
+      z-index: 2;
+    }
+
+    th {
+      padding: 0.7rem 0.875rem;
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border-strong);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 0.6rem 0.875rem;
+      border-bottom: 1px solid var(--border-subtle);
+      font-family: var(--font-mono);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      transition: background-color 0.12s ease;
+      cursor: pointer;
+    }
+
+    tbody tr:hover,
+    tbody tr.highlighted-row {
+      background-color: rgba(16, 185, 129, 0.12);
+    }
+
+    .mini-bar-bg {
+      width: 72px;
+      height: 6px;
+      background-color: var(--bg-input);
+      border-radius: 999px;
+      overflow: hidden;
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 0.5rem;
+    }
+
+    .mini-bar-fill {
+      height: 100%;
+      background-color: var(--accent-emerald);
+      border-radius: 999px;
+    }
+
+    .mini-bar-fill.cum {
+      background-color: var(--accent-indigo);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background-color: var(--accent-emerald);
+      color: #064e3b;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 0.65rem 1.1rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: all 0.2s ease;
+      z-index: 50;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="title-group">
+        <h1>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="4" ry="4"></rect>
+            <circle cx="8.5" cy="8.5" r="1.2" fill="#10b981"></circle>
+            <circle cx="15.5" cy="8.5" r="1.2" fill="#10b981"></circle>
+            <circle cx="12" cy="12" r="1.2" fill="#10b981"></circle>
+            <circle cx="8.5" cy="15.5" r="1.2" fill="#10b981"></circle>
+            <circle cx="15.5" cy="15.5" r="1.2" fill="#10b981"></circle>
+          </svg>
+          Dice Pool Probability Visualizer
+        </h1>
+        <p>Exact Binomial Distribution explorer for tabletop dice pool mechanics (<span class="mono">d_n(n, total_dice, above_num)</span>)</p>
+      </div>
+      <div class="preset-group">
+        <button type="button" class="preset-btn" id="presetEx1" title="Load Example 1: 3 six-sided dice needing 3+">
+          Example 1: d6(3, 3)
+        </button>
+        <button type="button" class="preset-btn" id="presetEx2" title="Load Example 2: 3 eight-sided dice needing 3+">
+          Example 2: d_n(8, 3, 3)
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <div class="dashboard-grid">
+      <!-- Left Sidebar: Controls -->
+      <aside class="card">
+        <div class="card-header">
+          <span class="card-title">Pool Parameters</span>
+        </div>
+
+        <!-- 1. Number of Sides (n) -->
+        <div class="control-block">
+          <div class="control-label-row">
+            <div>
+              <div class="control-label">Die Sides (<span class="mono">n</span>)</div>
+              <div class="control-sublabel">Polyhedral faces (2–100)</div>
+            </div>
+            <input type="number" id="sidesInput" class="num-input" min="2" max="100" value="6" aria-label="Number of sides" />
+          </div>
+
+          <div class="dice-grid" id="polyButtons">
+            <button type="button" class="dice-btn" data-sides="4">d4</button>
+            <button type="button" class="dice-btn active" data-sides="6">d6</button>
+            <button type="button" class="dice-btn" data-sides="8">d8</button>
+            <button type="button" class="dice-btn" data-sides="10">d10</button>
+            <button type="button" class="dice-btn" data-sides="12">d12</button>
+            <button type="button" class="dice-btn" data-sides="20">d20</button>
+            <button type="button" class="dice-btn" data-sides="100">d100</button>
+          </div>
+
+          <input type="range" id="sidesSlider" min="2" max="100" value="6" aria-label="Number of sides slider" />
+          <div class="range-ticks">
+            <span>d2</span>
+            <span>d25</span>
+            <span>d50</span>
+            <span>d75</span>
+            <span>d100</span>
+          </div>
+        </div>
+
+        <!-- 2. Total Dice Rolled (total_dice / N) -->
+        <div class="control-block">
+          <div class="control-label-row">
+            <div>
+              <div class="control-label">Total Dice (<span class="mono">total_dice</span>)</div>
+              <div class="control-sublabel">Pool size N (1–30)</div>
+            </div>
+            <input type="number" id="diceInput" class="num-input" min="1" max="30" value="3" aria-label="Total dice rolled" />
+          </div>
+          <input type="range" id="diceSlider" min="1" max="30" value="3" aria-label="Total dice slider" />
+          <div class="range-ticks">
+            <span>1</span>
+            <span>10</span>
+            <span>20</span>
+            <span>30</span>
+          </div>
+        </div>
+
+        <!-- 3. Target Minimum Number (above_num) -->
+        <div class="control-block">
+          <div class="control-label-row">
+            <div>
+              <div class="control-label">Target Number (<span class="mono">above_num</span>)</div>
+              <div class="control-sublabel">Roll &ge; target (1–<span id="maxTargetLabel">6</span>)</div>
+            </div>
+            <input type="number" id="targetInput" class="num-input" min="1" max="6" value="3" aria-label="Target minimum number" />
+          </div>
+          <input type="range" id="targetSlider" min="1" max="6" value="3" aria-label="Target minimum number slider" />
+          <div class="range-ticks">
+            <span>1 (Auto)</span>
+            <span id="maxTargetTick">6 (Max)</span>
+          </div>
+
+          <!-- Visual Face Breakdown -->
+          <div class="die-faces-preview" id="facePreview" title="Highlighted numbers count as a success"></div>
+        </div>
+
+        <!-- Live Formula Breakdown -->
+        <div class="formula-box" id="formulaBox">
+          <div>p = ((<span class="formula-highlight" id="fSides">6</span> + 1) - <span class="formula-highlight" id="fTarget">3</span>) / <span class="formula-highlight" id="fSides2">6</span></div>
+          <div>p = <span class="formula-highlight" id="fWinFaces">4</span> / <span class="formula-highlight" id="fSides3">6</span> = <span class="formula-highlight" id="fProb">0.6667</span></div>
+          <div style="margin-top: 0.4rem; color: #94a3b8;">P(X = i) = C(<span id="fN">3</span>, i) &middot; p<sup>i</sup> &middot; (1 - p)<sup><span id="fN2">3</span> - i</sup></div>
+        </div>
+      </aside>
+
+      <!-- Right Column: Metrics, Chart & Data Table -->
+      <main class="right-column">
+        <!-- Summary KPI Cards -->
+        <section class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Single-Die Success (p)</div>
+            <div class="kpi-value emerald" id="kpiSingleProb">66.67%</div>
+            <div class="kpi-sub" id="kpiSingleFrac">4 / 6 faces (0.6667)</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Expected Successes</div>
+            <div class="kpi-value" id="kpiExpected">2.00</div>
+            <div class="kpi-sub">Mean (&mu; = N &middot; p)</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Std Deviation (&sigma;)</div>
+            <div class="kpi-value" id="kpiStdDev">0.82</div>
+            <div class="kpi-sub">&radic;(N &middot; p &middot; (1 - p))</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Most Likely (Mode)</div>
+            <div class="kpi-value" id="kpiMode">2</div>
+            <div class="kpi-sub" id="kpiModeProb">44.44% chance</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">At Least 1 Success</div>
+            <div class="kpi-value indigo" id="kpiAtLeastOne">96.30%</div>
+            <div class="kpi-sub">P(X &ge; 1)</div>
+          </div>
+        </section>
+
+        <!-- Interactive Probability Chart Card -->
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <span class="card-title" id="chartHeading">Probability Distribution: Exact Successes P(X = i)</span>
+            </div>
+            <div class="mode-toggle" role="group" aria-label="Chart probability mode">
+              <button type="button" class="mode-btn active-exact" id="btnModeExact">Exact P(X = i)</button>
+              <button type="button" class="mode-btn" id="btnModeCum">At Least P(X &ge; i)</button>
+            </div>
+          </div>
+
+          <div class="chart-wrapper">
+            <svg id="distChart" role="img" aria-label="Probability distribution bar chart"></svg>
+          </div>
+
+          <!-- Selected / Hovered Bar Details -->
+          <div class="inspector-bar" id="inspectorBar">
+            <div style="font-weight: 600; color: var(--text-primary);">
+              Outcome: <span class="mono" style="color: var(--accent-emerald);" id="inspOutcome">2 Successes</span>
+            </div>
+            <div class="inspector-metrics">
+              <div class="inspector-item"><span class="lbl">Exact P(X=i): </span><span class="val" id="inspExact">0.4444 (44.44%)</span></div>
+              <div class="inspector-item"><span class="lbl">At Least P(X&ge;i): </span><span class="val" id="inspAtLeast">0.7407 (74.07%)</span></div>
+              <div class="inspector-item"><span class="lbl">At Most P(X&le;i): </span><span class="val" id="inspAtMost">0.7037 (70.37%)</span></div>
+              <div class="inspector-item"><span class="lbl">Ways C(N,i): </span><span class="val" id="inspComb">3</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Python Output & Detailed Table Card -->
+        <section class="card">
+          <div class="card-header">
+            <span class="card-title">Distribution Data &amp; Python Output</span>
+          </div>
+
+          <!-- Copyable Python Array Matching Original Script -->
+          <div class="python-output-card">
+            <div class="python-header">
+              <span class="python-signature" id="pythonCallLabel">>>> d6(3, 3)</span>
+              <button type="button" id="copyPythonBtn" style="padding: 0.25rem 0.65rem; min-height: 28px; font-size: 0.75rem;">
+                Copy Array
+              </button>
+            </div>
+            <div class="python-array-text" id="pythonArrayOutput">[0.037, 0.2222, 0.4444, 0.2963]</div>
+          </div>
+
+          <!-- Full Breakdown Table -->
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Successes (i)</th>
+                  <th>Combinations C(N, i)</th>
+                  <th>Exact P(X = i)</th>
+                  <th>Exact %</th>
+                  <th>At Least P(X &ge; i)</th>
+                  <th>At Most P(X &le; i)</th>
+                </tr>
+              </thead>
+              <tbody id="distTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">Copied Python array to clipboard!</div>
+
+  <script>
+    (function () {
+      // Application State
+      const state = {
+        sides: 6,       // n
+        totalDice: 3,   // total_dice (N)
+        target: 3,      // above_num
+        mode: 'exact',  // 'exact' or 'cumulative'
+        selectedIndex: 2 // highlighted outcome index i
+      };
+
+      // DOM References
+      const els = {
+        sidesInput: document.getElementById('sidesInput'),
+        sidesSlider: document.getElementById('sidesSlider'),
+        polyButtons: document.querySelectorAll('#polyButtons .dice-btn'),
+        diceInput: document.getElementById('diceInput'),
+        diceSlider: document.getElementById('diceSlider'),
+        targetInput: document.getElementById('targetInput'),
+        targetSlider: document.getElementById('targetSlider'),
+        maxTargetLabel: document.getElementById('maxTargetLabel'),
+        maxTargetTick: document.getElementById('maxTargetTick'),
+        facePreview: document.getElementById('facePreview'),
+        // Formula spans
+        fSides: document.getElementById('fSides'),
+        fSides2: document.getElementById('fSides2'),
+        fSides3: document.getElementById('fSides3'),
+        fTarget: document.getElementById('fTarget'),
+        fWinFaces: document.getElementById('fWinFaces'),
+        fProb: document.getElementById('fProb'),
+        fN: document.getElementById('fN'),
+        fN2: document.getElementById('fN2'),
+        // KPIs
+        kpiSingleProb: document.getElementById('kpiSingleProb'),
+        kpiSingleFrac: document.getElementById('kpiSingleFrac'),
+        kpiExpected: document.getElementById('kpiExpected'),
+        kpiStdDev: document.getElementById('kpiStdDev'),
+        kpiMode: document.getElementById('kpiMode'),
+        kpiModeProb: document.getElementById('kpiModeProb'),
+        kpiAtLeastOne: document.getElementById('kpiAtLeastOne'),
+        // Chart & Mode
+        chartHeading: document.getElementById('chartHeading'),
+        btnModeExact: document.getElementById('btnModeExact'),
+        btnModeCum: document.getElementById('btnModeCum'),
+        distChart: document.getElementById('distChart'),
+        // Inspector
+        inspOutcome: document.getElementById('inspOutcome'),
+        inspExact: document.getElementById('inspExact'),
+        inspAtLeast: document.getElementById('inspAtLeast'),
+        inspAtMost: document.getElementById('inspAtMost'),
+        inspComb: document.getElementById('inspComb'),
+        // Python & Table
+        pythonCallLabel: document.getElementById('pythonCallLabel'),
+        pythonArrayOutput: document.getElementById('pythonArrayOutput'),
+        copyPythonBtn: document.getElementById('copyPythonBtn'),
+        distTableBody: document.getElementById('distTableBody'),
+        // Presets & Toast
+        presetEx1: document.getElementById('presetEx1'),
+        presetEx2: document.getElementById('presetEx2'),
+        toast: document.getElementById('toast')
+      };
+
+      let currentDistribution = [];
+
+      /**
+       * Exact Binomial Coefficient C(n, k) using multiplicative formula to avoid factorial overflow
+       */
+      function combinations(n, k) {
+        if (k < 0 || k > n) return 0;
+        if (k === 0 || k === n) return 1;
+        if (k > n / 2) k = n - k;
+        let res = 1;
+        for (let i = 1; i <= k; i++) {
+          res = (res * (n - i + 1)) / i;
+        }
+        return Math.round(res);
+      }
+
+      /**
+       * Matches Python's round(val, 4) formatting cleanly
+       */
+      function round4(num) {
+        return Math.round((num + Number.EPSILON) * 10000) / 10000;
+      }
+
+      /**
+       * Computes exact and cumulative binomial distribution for the current state
+       */
+      function calculateDistribution(n, totalDice, aboveNum) {
+        const winningFaces = n + 1 - aboveNum;
+        const p = winningFaces / n;
+        const q = 1 - p;
+
+        const rows = [];
+        for (let i = 0; i <= totalDice; i++) {
+          const comb = combinations(totalDice, i);
+          // Handle 0^0 cleanly as 1 in probability math
+          const pTerm = i === 0 ? 1 : Math.pow(p, i);
+          const qTerm = totalDice - i === 0 ? 1 : Math.pow(q, totalDice - i);
+          const exactProb = comb * pTerm * qTerm;
+
+          rows.push({
+            i,
+            comb,
+            exact: exactProb,
+            exactRounded: round4(exactProb),
+            atLeast: 0,
+            atMost: 0
+          });
+        }
+
+        // Compute At Most P(X <= i)
+        let runningAtMost = 0;
+        for (let i = 0; i <= totalDice; i++) {
+          runningAtMost += rows[i].exact;
+          rows[i].atMost = Math.min(1, runningAtMost);
+        }
+
+        // Compute At Least P(X >= i)
+        let runningAtLeast = 0;
+        for (let i = totalDice; i >= 0; i--) {
+          runningAtLeast += rows[i].exact;
+          rows[i].atLeast = Math.min(1, runningAtLeast);
+        }
+
+        return { p, winningFaces, rows };
+      }
+
+      /**
+       * Synchronizes input controls and clamps target <= sides
+       */
+      function syncControls() {
+        state.sides = Math.max(2, Math.min(100, parseInt(state.sides, 10) || 6));
+        state.totalDice = Math.max(1, Math.min(30, parseInt(state.totalDice, 10) || 1));
+        state.target = Math.max(1, Math.min(state.sides, parseInt(state.target, 10) || 1));
+
+        els.sidesInput.value = state.sides;
+        els.sidesSlider.value = state.sides;
+
+        els.diceInput.value = state.totalDice;
+        els.diceSlider.value = state.totalDice;
+
+        els.targetInput.max = state.sides;
+        els.targetSlider.max = state.sides;
+        els.targetInput.value = state.target;
+        els.targetSlider.value = state.target;
+
+        els.maxTargetLabel.textContent = state.sides;
+        els.maxTargetTick.textContent = `${state.sides} (Max)`;
+
+        // Update polyhedral quick button highlight
+        els.polyButtons.forEach(btn => {
+          const btnSides = parseInt(btn.getAttribute('data-sides'), 10);
+          btn.classList.toggle('active', btnSides === state.sides);
+        });
+
+        // Update face chips preview (show up to 20 faces clearly, or summary for large dice)
+        renderFacePreview();
+      }
+
+      function renderFacePreview() {
+        els.facePreview.innerHTML = '';
+        if (state.sides <= 20) {
+          for (let f = 1; f <= state.sides; f++) {
+            const chip = document.createElement('span');
+            chip.className = 'face-chip' + (f >= state.target ? ' success' : '');
+            chip.textContent = f;
+            els.facePreview.appendChild(chip);
+          }
+        } else {
+          const failChip = document.createElement('span');
+          failChip.className = 'face-chip';
+          failChip.textContent = state.target > 1 ? `1–${state.target - 1}: Fail` : 'None: Fail';
+
+          const succChip = document.createElement('span');
+          succChip.className = 'face-chip success';
+          succChip.textContent = state.target === state.sides
+            ? `${state.sides}: Success`
+            : `${state.target}–${state.sides}: Success`;
+
+          els.facePreview.appendChild(failChip);
+          els.facePreview.appendChild(succChip);
+        }
+      }
+
+      /**
+       * Renders the interactive SVG bar chart
+       */
+      function renderChart(rows) {
+        const svg = els.distChart;
+        const rect = svg.getBoundingClientRect();
+        const width = Math.max(300, rect.width || 680);
+        const height = Math.max(240, rect.height || 330);
+
+        const pad = { top: 24, right: 16, bottom: 38, left: 48 };
+        const plotW = width - pad.left - pad.right;
+        const plotH = height - pad.top - pad.bottom;
+
+        const isExact = state.mode === 'exact';
+        const values = rows.map(r => (isExact ? r.exact : r.atLeast));
+        const maxVal = isExact ? Math.max(0.05, ...values) * 1.12 : 1.05;
+
+        // Clear SVG
+        while (svg.firstChild) {
+          svg.removeChild(svg.firstChild);
+        }
+
+        const svgNS = 'http://www.w3.org/2000/svg';
+
+        // Horizontal Gridlines & Y-Axis Labels (5 ticks)
+        const tickCount = 5;
+        for (let t = 0; t <= tickCount; t++) {
+          const ratio = t / tickCount;
+          const val = ratio * maxVal;
+          if (!isExact && val > 1.001) continue;
+          const y = pad.top + plotH - (val / maxVal) * plotH;
+
+          const line = document.createElementNS(svgNS, 'line');
+          line.setAttribute('x1', pad.left);
+          line.setAttribute('x2', pad.left + plotW);
+          line.setAttribute('y1', y);
+          line.setAttribute('y2', y);
+          line.setAttribute('stroke', '#1e293b');
+          line.setAttribute('stroke-width', '1');
+          svg.appendChild(line);
+
+          const label = document.createElementNS(svgNS, 'text');
+          label.setAttribute('x', pad.left - 8);
+          label.setAttribute('y', y + 4);
+          label.setAttribute('text-anchor', 'end');
+          label.setAttribute('fill', '#64748b');
+          label.setAttribute('font-size', '11');
+          label.setAttribute('font-family', 'var(--font-mono)');
+          label.textContent = `${Math.round(val * 100)}%`;
+          svg.appendChild(label);
+        }
+
+        // X-Axis Baseline
+        const xAxis = document.createElementNS(svgNS, 'line');
+        xAxis.setAttribute('x1', pad.left);
+        xAxis.setAttribute('x2', pad.left + plotW);
+        xAxis.setAttribute('y1', pad.top + plotH);
+        xAxis.setAttribute('y2', pad.top + plotH);
+        xAxis.setAttribute('stroke', '#334155');
+        xAxis.setAttribute('stroke-width', '1.5');
+        svg.appendChild(xAxis);
+
+        // Bars
+        const count = rows.length;
+        const slotW = plotW / count;
+        const barW = Math.max(4, Math.min(48, slotW * 0.68));
+        const labelStep = count > 20 ? 2 : 1;
+
+        rows.forEach((row, idx) => {
+          const val = isExact ? row.exact : row.atLeast;
+          const barH = Math.max(2, (val / maxVal) * plotH);
+          const x = pad.left + idx * slotW + (slotW - barW) / 2;
+          const y = pad.top + plotH - barH;
+          const isSelected = idx === state.selectedIndex;
+
+          // Determine fill color
+          let fillColor = isExact ? '#10b981' : '#6366f1';
+          if (isSelected) {
+            fillColor = isExact ? '#34d399' : '#818cf8';
+          }
+
+          // Bar rectangle
+          const bar = document.createElementNS(svgNS, 'rect');
+          bar.setAttribute('x', x);
+          bar.setAttribute('y', y);
+          bar.setAttribute('width', barW);
+          bar.setAttribute('height', barH);
+          bar.setAttribute('rx', Math.min(4, barW / 3));
+          bar.setAttribute('fill', fillColor);
+          bar.setAttribute('opacity', isSelected ? '1' : '0.82');
+          if (isSelected) {
+            bar.setAttribute('stroke', '#ffffff');
+            bar.setAttribute('stroke-width', '1.5');
+          }
+          bar.classList.add('chart-bar');
+          svg.appendChild(bar);
+
+          // Value label on top of bars if spacious enough
+          if (count <= 14 || isSelected) {
+            const valText = document.createElementNS(svgNS, 'text');
+            valText.setAttribute('x', x + barW / 2);
+            valText.setAttribute('y', y - 6);
+            valText.setAttribute('text-anchor', 'middle');
+            valText.setAttribute('fill', isSelected ? '#ffffff' : '#94a3b8');
+            valText.setAttribute('font-size', count > 10 ? '9.5' : '11');
+            valText.setAttribute('font-weight', isSelected ? '700' : '500');
+            valText.setAttribute('font-family', 'var(--font-mono)');
+            valText.textContent = `${(val * 100).toFixed(count > 10 ? 0 : 1)}%`;
+            svg.appendChild(valText);
+          }
+
+          // X-Axis Tick Label
+          if (idx % labelStep === 0 || isSelected) {
+            const xLabel = document.createElementNS(svgNS, 'text');
+            xLabel.setAttribute('x', x + barW / 2);
+            xLabel.setAttribute('y', pad.top + plotH + 18);
+            xLabel.setAttribute('text-anchor', 'middle');
+            xLabel.setAttribute('fill', isSelected ? '#ffffff' : '#94a3b8');
+            xLabel.setAttribute('font-size', '11');
+            xLabel.setAttribute('font-weight', isSelected ? '700' : '400');
+            xLabel.setAttribute('font-family', 'var(--font-mono)');
+            xLabel.textContent = idx;
+            svg.appendChild(xLabel);
+          }
+
+          // Full-slot invisible hit target for effortless mobile & desktop interaction
+          const hitRect = document.createElementNS(svgNS, 'rect');
+          hitRect.setAttribute('x', pad.left + idx * slotW);
+          hitRect.setAttribute('y', pad.top);
+          hitRect.setAttribute('width', slotW);
+          hitRect.setAttribute('height', plotH + 24);
+          hitRect.classList.add('chart-bar-hit');
+
+          const selectHandler = () => {
+            if (state.selectedIndex !== idx) {
+              state.selectedIndex = idx;
+              updateInspectorAndTableHighlight();
+              renderChart(currentDistribution);
+            }
+          };
+
+          hitRect.addEventListener('mouseenter', selectHandler);
+          hitRect.addEventListener('click', selectHandler);
+          svg.appendChild(hitRect);
+        });
+
+        // X-Axis Title
+        const axisTitle = document.createElementNS(svgNS, 'text');
+        axisTitle.setAttribute('x', pad.left + plotW / 2);
+        axisTitle.setAttribute('y', height - 2);
+        axisTitle.setAttribute('text-anchor', 'middle');
+        axisTitle.setAttribute('fill', '#64748b');
+        axisTitle.setAttribute('font-size', '11');
+        axisTitle.textContent = 'Number of Successful Dice (i)';
+        svg.appendChild(axisTitle);
+      }
+
+      /**
+       * Updates the Inspector banner and highlights the matching table row
+       */
+      function updateInspectorAndTableHighlight() {
+        if (!currentDistribution.length) return;
+        const idx = Math.max(0, Math.min(currentDistribution.length - 1, state.selectedIndex));
+        state.selectedIndex = idx;
+        const row = currentDistribution[idx];
+
+        els.inspOutcome.textContent = `${row.i} ${row.i === 1 ? 'Success' : 'Successes'}`;
+        els.inspExact.textContent = `${row.exactRounded.toFixed(4)} (${(row.exact * 100).toFixed(2)}%)`;
+        els.inspAtLeast.textContent = `${round4(row.atLeast).toFixed(4)} (${(row.atLeast * 100).toFixed(2)}%)`;
+        els.inspAtMost.textContent = `${round4(row.atMost).toFixed(4)} (${(row.atMost * 100).toFixed(2)}%)`;
+        els.inspComb.textContent = row.comb.toLocaleString();
+
+        const trs = els.distTableBody.querySelectorAll('tr');
+        trs.forEach((tr, rIdx) => {
+          tr.classList.toggle('highlighted-row', rIdx === idx);
+        });
+      }
+
+      /**
+       * Renders the full breakdown table
+       */
+      function renderTable(rows) {
+        els.distTableBody.innerHTML = '';
+        rows.forEach((row, idx) => {
+          const tr = document.createElement('tr');
+          if (idx === state.selectedIndex) {
+            tr.classList.add('highlighted-row');
+          }
+
+          const exactPct = (row.exact * 100).toFixed(2);
+          const atLeastPct = (row.atLeast * 100).toFixed(2);
+          const atMostPct = (row.atMost * 100).toFixed(2);
+
+          tr.innerHTML = `
+            <td style="font-weight: 700; color: var(--text-primary);">${row.i}</td>
+            <td style="color: var(--text-secondary);">${row.comb.toLocaleString()}</td>
+            <td style="color: var(--accent-emerald); font-weight: 600;">${row.exactRounded.toFixed(4)}</td>
+            <td>
+              ${exactPct}%
+              <span class="mini-bar-bg"><span class="mini-bar-fill" style="width: ${Math.min(100, row.exact * 100)}%;"></span></span>
+            </td>
+            <td style="color: #a5b4fc;">
+              ${atLeastPct}%
+              <span class="mini-bar-bg"><span class="mini-bar-fill cum" style="width: ${Math.min(100, row.atLeast * 100)}%;"></span></span>
+            </td>
+            <td style="color: var(--text-secondary);">${atMostPct}%</td>
+          `;
+
+          tr.addEventListener('click', () => {
+            state.selectedIndex = idx;
+            updateInspectorAndTableHighlight();
+            renderChart(currentDistribution);
+          });
+
+          els.distTableBody.appendChild(tr);
+        });
+      }
+
+      /**
+       * Master Update Function
+       */
+      function updateAll() {
+        syncControls();
+        const { p, winningFaces, rows } = calculateDistribution(state.sides, state.totalDice, state.target);
+        currentDistribution = rows;
+
+        // Formula Box
+        els.fSides.textContent = state.sides;
+        els.fSides2.textContent = state.sides;
+        els.fSides3.textContent = state.sides;
+        els.fTarget.textContent = state.target;
+        els.fWinFaces.textContent = winningFaces;
+        els.fProb.textContent = round4(p).toFixed(4);
+        els.fN.textContent = state.totalDice;
+        els.fN2.textContent = state.totalDice;
+
+        // Summary KPIs
+        const mean = state.totalDice * p;
+        const stdDev = Math.sqrt(state.totalDice * p * (1 - p));
+
+        // Find Mode (highest probability outcome)
+        let modeRow = rows[0];
+        for (const r of rows) {
+          if (r.exact > modeRow.exact) modeRow = r;
+        }
+
+        els.kpiSingleProb.textContent = `${(p * 100).toFixed(2)}%`;
+        els.kpiSingleFrac.textContent = `${winningFaces} / ${state.sides} faces (${round4(p).toFixed(4)})`;
+        els.kpiExpected.textContent = mean.toFixed(2);
+        els.kpiStdDev.textContent = stdDev.toFixed(2);
+        els.kpiMode.textContent = `${modeRow.i} ${modeRow.i === 1 ? 'success' : 'successes'}`;
+        els.kpiModeProb.textContent = `${(modeRow.exact * 100).toFixed(2)}% chance`;
+        els.kpiAtLeastOne.textContent = `${(rows[1] ? rows[1].atLeast * 100 : 0).toFixed(2)}%`;
+
+        // Python Signature & Array Output matching original script
+        if (state.sides === 6) {
+          els.pythonCallLabel.textContent = `>>> d6(${state.totalDice}, ${state.target})`;
+        } else {
+          els.pythonCallLabel.textContent = `>>> d_n(${state.sides}, ${state.totalDice}, ${state.target})`;
+        }
+        const pyArray = `[${rows.map(r => r.exactRounded).join(', ')}]`;
+        els.pythonArrayOutput.textContent = pyArray;
+
+        // Default selected index to the Mode when dice count changes out of bounds
+        if (state.selectedIndex > state.totalDice) {
+          state.selectedIndex = modeRow.i;
+        }
+
+        renderChart(rows);
+        renderTable(rows);
+        updateInspectorAndTableHighlight();
+      }
+
+      // Event Listeners: Sides
+      els.sidesInput.addEventListener('input', (e) => {
+        state.sides = e.target.value;
+        updateAll();
+      });
+      els.sidesSlider.addEventListener('input', (e) => {
+        state.sides = e.target.value;
+        updateAll();
+      });
+      els.polyButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.sides = parseInt(btn.getAttribute('data-sides'), 10);
+          updateAll();
+        });
+      });
+
+      // Event Listeners: Total Dice
+      els.diceInput.addEventListener('input', (e) => {
+        state.totalDice = e.target.value;
+        updateAll();
+      });
+      els.diceSlider.addEventListener('input', (e) => {
+        state.totalDice = e.target.value;
+        updateAll();
+      });
+
+      // Event Listeners: Target Number
+      els.targetInput.addEventListener('input', (e) => {
+        state.target = e.target.value;
+        updateAll();
+      });
+      els.targetSlider.addEventListener('input', (e) => {
+        state.target = e.target.value;
+        updateAll();
+      });
+
+      // Mode Toggle
+      els.btnModeExact.addEventListener('click', () => {
+        state.mode = 'exact';
+        els.btnModeExact.classList.add('active-exact');
+        els.btnModeCum.classList.remove('active-cum');
+        els.chartHeading.textContent = 'Probability Distribution: Exact Successes P(X = i)';
+        renderChart(currentDistribution);
+      });
+
+      els.btnModeCum.addEventListener('click', () => {
+        state.mode = 'cumulative';
+        els.btnModeCum.classList.add('active-cum');
+        els.btnModeExact.classList.remove('active-exact');
+        els.chartHeading.textContent = 'Cumulative Distribution: At Least i Successes P(X ≥ i)';
+        renderChart(currentDistribution);
+      });
+
+      // Presets matching original Python script examples
+      els.presetEx1.addEventListener('click', () => {
+        state.sides = 6;
+        state.totalDice = 3;
+        state.target = 3;
+        state.selectedIndex = 2;
+        updateAll();
+      });
+
+      els.presetEx2.addEventListener('click', () => {
+        state.sides = 8;
+        state.totalDice = 3;
+        state.target = 3;
+        state.selectedIndex = 2;
+        updateAll();
+      });
+
+      // Copy Python Array using reliable fallback
+      els.copyPythonBtn.addEventListener('click', () => {
+        const text = els.pythonArrayOutput.textContent;
+        const tempArea = document.createElement('textarea');
+        tempArea.value = text;
+        tempArea.style.position = 'fixed';
+        tempArea.style.left = '-9999px';
+        document.body.appendChild(tempArea);
+        tempArea.select();
+        try {
+          document.execCommand('copy');
+          els.toast.classList.add('show');
+          setTimeout(() => els.toast.classList.remove('show'), 2200);
+        } catch (err) {
+          console.error('Copy failed', err);
+        }
+        document.body.removeChild(tempArea);
+      });
+
+      // Responsive SVG redraw on window resize
+      window.addEventListener('resize', () => {
+        if (currentDistribution.length) {
+          renderChart(currentDistribution);
+        }
+      });
+
+      // Initial render on load
+      window.addEventListener('load', () => {
+        updateAll();
+      });
+    })();
+  </script>
+  <footer style="max-width: 1280px; margin: 0 auto; padding: 0 2rem 2rem; color: #94a3b8; font-size: 0.85rem; line-height: 1.6; text-align: center;">
+    Probability method based on code shared by <strong>Bob Klemm</strong> on October 23, 2025. Used with permission.
+    <a href="index.html" style="color: #34d399; margin-left: 0.5rem;">Dice Toolkit home</a>
+  </footer>
+</body>
+</html>

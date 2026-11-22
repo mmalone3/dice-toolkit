@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Custom Dice Pool Roller &amp; Probability Visualizer</title>
+  <style>
+    /* Reset & Base Styles */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-app: #0b0f19;
+      --bg-surface: #111827;
+      --bg-surface-elevated: #1e293b;
+      --bg-input: #0f172a;
+      --border-subtle: #1e293b;
+      --border-strong: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-emerald: #10b981;
+      --accent-emerald-glow: rgba(16, 185, 129, 0.25);
+      --accent-emerald-hover: #34d399;
+      --accent-indigo: #6366f1;
+      --accent-indigo-glow: rgba(99, 102, 241, 0.25);
+      --accent-amber: #f59e0b;
+      --accent-amber-glow: rgba(245, 158, 11, 0.25);
+      --accent-rose: #f43f5e;
+      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-app);
+      color: var(--text-primary);
+      line-height: 1.5;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding-bottom: 3rem;
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+    }
+
+    /* Layout Container */
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 1.25rem;
+    }
+
+    @media (min-width: 768px) {
+      .container {
+        padding: 2rem;
+      }
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 1.75rem;
+    }
+
+    @media (min-width: 768px) {
+      header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .title-group h1 {
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+    }
+
+    @media (min-width: 768px) {
+      .title-group h1 {
+        font-size: 1.75rem;
+      }
+    }
+
+    .title-group p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+    }
+
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Buttons */
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid var(--border-strong);
+      background-color: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      border-radius: 0.5rem;
+      padding: 0.5rem 0.875rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+      min-height: 36px;
+    }
+
+    button:hover:not(:disabled) {
+      border-color: var(--accent-emerald);
+      background-color: #263349;
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    button.active {
+      background-color: var(--accent-emerald);
+      border-color: var(--accent-emerald);
+      color: #064e3b;
+      font-weight: 700;
+      box-shadow: 0 0 14px var(--accent-emerald-glow);
+    }
+
+    button.preset-btn {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      background-color: rgba(99, 102, 241, 0.12);
+      border-color: rgba(99, 102, 241, 0.4);
+      color: #c7d2fe;
+    }
+
+    button.preset-btn:hover:not(:disabled) {
+      background-color: rgba(99, 102, 241, 0.25);
+      border-color: var(--accent-indigo);
+      color: #ffffff;
+    }
+
+    button.roll-primary-btn {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-color: #34d399;
+      color: #022c22;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 0.65rem 1.35rem;
+      min-height: 42px;
+      box-shadow: 0 4px 18px var(--accent-emerald-glow);
+    }
+
+    button.roll-primary-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+      border-color: #6ee7b7;
+      box-shadow: 0 6px 22px rgba(16, 185, 129, 0.38);
+    }
+
+    button.secondary-action-btn {
+      background-color: var(--bg-input);
+      border-color: var(--border-strong);
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      min-height: 38px;
+    }
+
+    button.secondary-action-btn:hover:not(:disabled) {
+      color: var(--text-primary);
+      border-color: var(--accent-indigo);
+    }
+
+    /* Main Grid */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 1024px) {
+      .dashboard-grid {
+        grid-template-columns: 350px 1fr;
+        align-items: start;
+      }
+    }
+
+    /* Cards */
+    .card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 0.875rem;
+      padding: 1.25rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    @media (min-width: 768px) {
+      .card {
+        padding: 1.5rem;
+      }
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.15rem;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+
+    /* Controls Section */
+    .control-block {
+      margin-bottom: 1.35rem;
+      padding-bottom: 1.35rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .control-block:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .control-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.625rem;
+    }
+
+    .control-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .control-sublabel {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .num-input {
+      width: 4.5rem;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-strong);
+      color: var(--accent-emerald);
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 0.35rem 0.5rem;
+      border-radius: 0.45rem;
+      text-align: right;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .num-input:focus {
+      border-color: var(--accent-emerald);
+    }
+
+    /* Polyhedral Quick Buttons */
+    .dice-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.45rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .dice-btn {
+      padding: 0.4rem 0.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      min-height: 36px;
+    }
+
+    /* Range Sliders */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--bg-input);
+      border-radius: 999px;
+      border: 1px solid var(--border-strong);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      cursor: pointer;
+      border: 2px solid #064e3b;
+      box-shadow: 0 0 8px var(--accent-emerald-glow);
+      transition: transform 0.1s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      cursor: pointer;
+      border: 2px solid #064e3b;
+    }
+
+    .range-ticks {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+    }
+
+    /* Visual Die Face Indicator */
+    .die-faces-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin-top: 0.75rem;
+      max-height: 84px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    .face-chip {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 0.3rem;
+      border: 1px solid var(--border-strong);
+      color: var(--text-muted);
+      background-color: var(--bg-input);
+      user-select: none;
+    }
+
+    .face-chip.success {
+      background-color: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.5);
+      color: var(--accent-emerald-hover);
+      font-weight: 600;
+    }
+
+    /* Formula Box */
+    .formula-box {
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-strong);
+      border-radius: 0.625rem;
+      padding: 0.875rem;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .formula-highlight {
+      color: var(--accent-emerald);
+      font-weight: 600;
+    }
+
+    /* Right Column Content */
+    .right-column {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      min-width: 0;
+    }
+
+    /* Dice Tray Card */
+    .tray-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.625rem;
+    }
+
+    .dice-tray {
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-strong);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      min-height: 156px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0.85rem;
+      position: relative;
+      box-shadow: inset 0 2px 14px rgba(0, 0, 0, 0.45);
+    }
+
+    .die-card {
+      width: 74px;
+      height: 84px;
+      background-color: var(--bg-surface);
+      border: 2px solid var(--border-strong);
+      border-radius: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.18s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+      padding: 0.35rem;
+    }
+
+    .die-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--text-secondary);
+    }
+
+    .die-card.success {
+      border-color: var(--accent-emerald);
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.14) 0%, rgba(15, 23, 42, 0.95) 100%);
+      box-shadow: 0 0 16px var(--accent-emerald-glow);
+    }
+
+    .die-card.crit {
+      border-color: var(--accent-amber);
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.18) 0%, rgba(15, 23, 42, 0.95) 100%);
+      box-shadow: 0 0 18px var(--accent-amber-glow);
+    }
+
+    .die-card.fail {
+      border-color: #293548;
+      background-color: #0d1424;
+      opacity: 0.8;
+    }
+
+    .die-card.fumble {
+      border-color: rgba(244, 63, 94, 0.55);
+      background: linear-gradient(180deg, rgba(244, 63, 94, 0.1) 0%, rgba(13, 20, 36, 0.95) 100%);
+    }
+
+    @keyframes diceTumble {
+      0% { transform: rotate(0deg) scale(0.92); }
+      25% { transform: rotate(-10deg) scale(1.06); }
+      50% { transform: rotate(8deg) scale(0.96); }
+      75% { transform: rotate(-5deg) scale(1.03); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+
+    .die-card.rolling {
+      animation: diceTumble 0.32s ease-in-out infinite;
+    }
+
+    .die-shape-wrap {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .die-shape-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .die-value {
+      position: relative;
+      z-index: 2;
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+    }
+
+    .die-card.success .die-value {
+      color: var(--accent-emerald-hover);
+    }
+
+    .die-card.crit .die-value {
+      color: #fbbf24;
+    }
+
+    .die-card.fail .die-value {
+      color: var(--text-secondary);
+    }
+
+    .die-card.fumble .die-value {
+      color: #fb7185;
+    }
+
+    /* Pip layout for d6 */
+    .pip-grid {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      padding: 4px;
+      gap: 2px;
+      border-radius: 6px;
+      background-color: rgba(15, 23, 42, 0.85);
+      border: 1.5px solid currentColor;
+    }
+
+    .pip {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: currentColor;
+      margin: auto;
+      opacity: 0;
+    }
+
+    .pip.on {
+      opacity: 1;
+    }
+
+    .die-status-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 0.25rem;
+    }
+
+    .die-card.success .die-status-label { color: var(--accent-emerald); }
+    .die-card.crit .die-status-label { color: var(--accent-amber); }
+    .die-card.fail .die-status-label { color: var(--text-muted); }
+    .die-card.fumble .die-status-label { color: var(--accent-rose); }
+
+    .die-reroll-hint {
+      position: absolute;
+      top: 4px;
+      right: 5px;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .die-card:hover .die-reroll-hint {
+      opacity: 1;
+    }
+
+    .tray-footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      padding-top: 0.9rem;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    .verdict-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      background-color: var(--bg-surface-elevated);
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+    }
+
+    .verdict-pill.lucky {
+      background-color: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.5);
+      color: var(--accent-emerald-hover);
+    }
+
+    .verdict-pill.unlucky {
+      background-color: rgba(244, 63, 94, 0.15);
+      border-color: rgba(244, 63, 94, 0.45);
+      color: #fda4af;
+    }
+
+    .verdict-pill.expected {
+      background-color: rgba(99, 102, 241, 0.15);
+      border-color: rgba(99, 102, 241, 0.45);
+      color: #c7d2fe;
+    }
+
+    /* Summary KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.875rem;
+    }
+
+    @media (min-width: 640px) {
+      .kpi-grid {
+        grid-template-columns: repeat(5, 1fr);
+      }
+    }
+
+    .kpi-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .kpi-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-secondary);
+      margin-bottom: 0.35rem;
+    }
+
+    .kpi-value {
+      font-family: var(--font-mono);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .kpi-value.emerald {
+      color: var(--accent-emerald);
+    }
+
+    .kpi-value.indigo {
+      color: #818cf8;
+    }
+
+    .kpi-value.amber {
+      color: var(--accent-amber);
+    }
+
+    .kpi-sub {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* Chart Controls & Legend */
+    .mode-toggle {
+      display: inline-flex;
+      background-color: var(--bg-input);
+      padding: 0.25rem;
+      border-radius: 0.55rem;
+      border: 1px solid var(--border-strong);
+    }
+
+    .mode-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 0.35rem 0.75rem;
+      font-size: 0.78rem;
+      border-radius: 0.4rem;
+      min-height: 30px;
+    }
+
+    .mode-btn:hover {
+      background: transparent;
+      color: var(--text-primary);
+    }
+
+    .mode-btn.active-exact {
+      background-color: var(--accent-emerald);
+      color: #064e3b;
+      font-weight: 700;
+    }
+
+    .mode-btn.active-cum {
+      background-color: var(--accent-indigo);
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    /* Interactive Chart Area */
+    .chart-wrapper {
+      position: relative;
+      width: 100%;
+      height: 290px;
+      margin-top: 0.5rem;
+      user-select: none;
+    }
+
+    svg#distChart {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
+    }
+
+    .chart-bar {
+      transition: height 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+                  y 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+                  fill 0.15s ease;
+      cursor: pointer;
+    }
+
+    .chart-bar-hit {
+      fill: transparent;
+      cursor: pointer;
+    }
+
+    /* Inspected Bar Banner */
+    .inspector-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-strong);
+      border-radius: 0.625rem;
+      padding: 0.75rem 1rem;
+      margin-top: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .inspector-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+    }
+
+    .inspector-item span.lbl {
+      color: var(--text-muted);
+    }
+
+    .inspector-item span.val {
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+
+    /* Roll History List */
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .history-empty {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 1.5rem 0;
+    }
+
+    .history-item {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: 0.55rem;
+      padding: 0.65rem 0.9rem;
+      font-size: 0.82rem;
+    }
+
+    .history-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-family: var(--font-mono);
+    }
+
+    .history-pool-tag {
+      background-color: var(--bg-surface-elevated);
+      color: #c7d2fe;
+      padding: 0.15rem 0.45rem;
+      border-radius: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .history-dice-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+
+    .mini-die-pill {
+      padding: 0.1rem 0.38rem;
+      border-radius: 0.28rem;
+      border: 1px solid var(--border-strong);
+      color: var(--text-muted);
+      background-color: var(--bg-surface);
+    }
+
+    .mini-die-pill.hit {
+      border-color: rgba(16, 185, 129, 0.55);
+      color: var(--accent-emerald-hover);
+      background-color: rgba(16, 185, 129, 0.12);
+      font-weight: 700;
+    }
+
+    .mini-die-pill.crit {
+      border-color: rgba(245, 158, 11, 0.6);
+      color: #fbbf24;
+      background-color: rgba(245, 158, 11, 0.14);
+      font-weight: 700;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background-color: var(--accent-emerald);
+      color: #064e3b;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 0.65rem 1.1rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: all 0.2s ease;
+      z-index: 50;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="title-group">
+        <h1>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="4" ry="4"></rect>
+            <circle cx="8.5" cy="8.5" r="1.2" fill="#10b981"></circle>
+            <circle cx="15.5" cy="8.5" r="1.2" fill="#10b981"></circle>
+            <circle cx="12" cy="12" r="1.2" fill="#10b981"></circle>
+            <circle cx="8.5" cy="15.5" r="1.2" fill="#10b981"></circle>
+            <circle cx="15.5" cy="15.5" r="1.2" fill="#10b981"></circle>
+          </svg>
+          Custom Dice Pool Roller
+        </h1>
+        <p>Roll your custom dice pool (<span class="mono">total_dice</span> &times; <span class="mono">d_n</span> &ge; <span class="mono">above_num</span>) and compare live results against exact binomial odds</p>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="preset-btn" id="presetEx1" title="Load 3d6 needing 3+">
+          d6(3, 3)
+        </button>
+        <button type="button" class="preset-btn" id="presetEx2" title="Load 3d8 needing 3+">
+          d8(3, 3)
+        </button>
+        <button type="button" class="preset-btn" id="presetEx3" title="Load 5d10 needing 7+">
+          5d10 &ge; 7
+        </button>
+        <button type="button" id="soundToggleBtn" title="Toggle dice sound effects" aria-pressed="true">
+          Sound: On
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <div class="dashboard-grid">
+      <!-- Left Sidebar: Controls -->
+      <aside class="card">
+        <div class="card-header">
+          <span class="card-title">Pool Parameters</span>
+        </div>
+
+        <!-- 1. Number of Sides (n) -->
+        <div class="control-block">
+          <div class="control-label-row">
+            <div>
+              <div class="control-label">Die Sides (<span class="mono">n</span>)</div>
+              <div class="control-sublabel">Polyhedral faces (2–100)</div>
+            </div>
+            <input type="number" id="sidesInput" class="num-input" min="2" max="100" value="6" aria-label="Number of sides" />
+          </div>
+
+          <div class="dice-grid" id="polyButtons">
+            <button type="button" class="dice-btn" data-sides="4">d4</button>
+            <button type="button" class="dice-btn active" data-sides="6">d6</button>
+            <button type="button" class="dice-btn" data-sides="8">d8</button>
+            <button type="button" class="dice-btn" data-sides="10">d10</button>
+            <button type="button" class="dice-btn" data-sides="12">d12</button>
+            <button type="button" class="dice-btn" data-sides="20">d20</button>
+            <button type="button" class="dice-btn" data-sides="100">d100</button>
+          </div>
+
+          <input type="range" id="sidesSlider" min="2" max="100" value="6" aria-label="Number of sides slider" />
+          <div class="range-ticks">
+            <span>d2</span>
+            <span>d25</span>
+            <span>d50</span>
+            <span>d75</span>
+            <span>d100</span>
+          </div>
+        </div>
+
+        <!-- 2. Total Dice Rolled (total_dice / N) -->
+        <div class="control-block">
+          <div class="control-label-row">
+            <div>
+              <div class="control-label">Total Dice (<span class="mono">total_dice</span>)</div>
+              <div class="control-sublabel">Pool size N (1–30)</div>
+            </div>
+            <input type="number" id="diceInput" class="num-input" min="1" max="30" value="3" aria-label="Total dice rolled" />
+          </div>
+          <input type="range" id="diceSlider" min="1" max="30" value="3" aria-label="Total dice slider" />
+          <div class="range-ticks">
+            <span>1</span>
+            <span>10</span>
+            <span>20</span>
+            <span>30</span>
+          </div>
+        </div>
+
+        <!-- 3. Target Minimum Number (above_num) -->
+        <div class="control-block">
+          <div class="control-label-row">
+            <div>
+              <div class="control-label">Target Number (<span class="mono">above_num</span>)</div>
+              <div class="control-sublabel">Roll &ge; target (1–<span id="maxTargetLabel">6</span>)</div>
+            </div>
+            <input type="number" id="targetInput" class="num-input" min="1" max="6" value="3" aria-label="Target minimum number" />
+          </div>
+          <input type="range" id="targetSlider" min="1" max="6" value="3" aria-label="Target minimum number slider" />
+          <div class="range-ticks">
+            <span>1 (Auto)</span>
+            <span id="maxTargetTick">6 (Max)</span>
+          </div>
+
+          <!-- Visual Face Breakdown -->
+          <div class="die-faces-preview" id="facePreview" title="Highlighted numbers count as a success"></div>
+        </div>
+
+        <!-- Live Formula Breakdown -->
+        <div class="formula-box" id="formulaBox">
+          <div>p = ((<span class="formula-highlight" id="fSides">6</span> + 1) - <span class="formula-highlight" id="fTarget">3</span>) / <span class="formula-highlight" id="fSides2">6</span></div>
+          <div>p = <span class="formula-highlight" id="fWinFaces">4</span> / <span class="formula-highlight" id="fSides3">6</span> = <span class="formula-highlight" id="fProb">0.6667</span></div>
+          <div style="margin-top: 0.4rem; color: #94a3b8;">P(X = i) = C(<span id="fN">3</span>, i) &middot; p<sup>i</sup> &middot; (1 - p)<sup><span id="fN2">3</span> - i</sup></div>
+        </div>
+      </aside>
+
+      <!-- Right Column: Dice Tray, Roll KPIs, Chart & History -->
+      <main class="right-column">
+        <!-- Interactive Dice Tray Card -->
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <span class="card-title">Dice Tray</span>
+              <span class="mono" style="font-size: 0.8rem; color: var(--text-muted); margin-left: 0.5rem;" id="trayPoolBadge">3d6 &ge; 3</span>
+            </div>
+            <div class="tray-controls">
+              <button type="button" class="secondary-action-btn" id="rerollFailedBtn" title="Reroll only the failed dice">
+                Reroll Failed
+              </button>
+              <button type="button" class="roll-primary-btn" id="rollPoolBtn" title="Roll all dice (Spacebar)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="4" ry="4"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"></circle>
+                  <circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"></circle>
+                </svg>
+                Roll Pool
+              </button>
+            </div>
+          </div>
+
+          <!-- Visual Dice Grid -->
+          <div class="dice-tray" id="diceTray" aria-live="polite"></div>
+
+          <div class="tray-footer">
+            <span>Tip: Click any individual die to reroll it, or press <span class="mono" style="color: var(--text-primary);">Space</span> to roll the full pool.</span>
+            <span class="verdict-pill expected" id="rollVerdictPill">Expected Outcome</span>
+          </div>
+        </section>
+
+        <!-- Summary KPI Cards (Live Roll + Expected Odds) -->
+        <section class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Successes Rolled</div>
+            <div class="kpi-value emerald" id="kpiRolledSuccesses">2 / 3</div>
+            <div class="kpi-sub" id="kpiExpectedSub">Expected: 2.00 (&mu;)</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Total Sum</div>
+            <div class="kpi-value" id="kpiRollSum">12</div>
+            <div class="kpi-sub" id="kpiRollAvg">Avg: 4.00 per die</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Exact Odds P(X = k)</div>
+            <div class="kpi-value" id="kpiRollExactProb">44.44%</div>
+            <div class="kpi-sub" id="kpiRollWays">3 combinations</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">At Least P(X &ge; k)</div>
+            <div class="kpi-value indigo" id="kpiRollAtLeast">74.07%</div>
+            <div class="kpi-sub">Chance of &ge; k hits</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Single-Die Odds (p)</div>
+            <div class="kpi-value amber" id="kpiSingleProb">66.67%</div>
+            <div class="kpi-sub" id="kpiSingleFrac">4 / 6 faces</div>
+          </div>
+        </section>
+
+        <!-- Interactive Probability Chart Card -->
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <span class="card-title" id="chartHeading">Probability Distribution: Exact Successes P(X = i)</span>
+            </div>
+            <div class="mode-toggle" role="group" aria-label="Chart probability mode">
+              <button type="button" class="mode-btn active-exact" id="btnModeExact">Exact P(X = i)</button>
+              <button type="button" class="mode-btn" id="btnModeCum">At Least P(X &ge; i)</button>
+            </div>
+          </div>
+
+          <div class="chart-wrapper">
+            <svg id="distChart" role="img" aria-label="Probability distribution bar chart"></svg>
+          </div>
+
+          <!-- Selected / Hovered Bar Details -->
+          <div class="inspector-bar" id="inspectorBar">
+            <div style="font-weight: 600; color: var(--text-primary);">
+              Outcome: <span class="mono" style="color: var(--accent-emerald);" id="inspOutcome">2 Successes</span>
+            </div>
+            <div class="inspector-metrics">
+              <div class="inspector-item"><span class="lbl">Exact P(X=i): </span><span class="val" id="inspExact">0.4444 (44.44%)</span></div>
+              <div class="inspector-item"><span class="lbl">At Least P(X&ge;i): </span><span class="val" id="inspAtLeast">0.7407 (74.07%)</span></div>
+              <div class="inspector-item"><span class="lbl">At Most P(X&le;i): </span><span class="val" id="inspAtMost">0.7037 (70.37%)</span></div>
+              <div class="inspector-item"><span class="lbl">Ways C(N,i): </span><span class="val" id="inspComb">3</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Roll History Card -->
+        <section class="card">
+          <div class="card-header">
+            <span class="card-title">Roll History</span>
+            <div style="display: flex; gap: 0.5rem;">
+              <button type="button" class="secondary-action-btn" id="copyRollBtn" style="min-height: 30px; padding: 0.25rem 0.65rem;">
+                Copy Latest Roll
+              </button>
+              <button type="button" class="secondary-action-btn" id="clearHistoryBtn" style="min-height: 30px; padding: 0.25rem 0.65rem;">
+                Clear
+              </button>
+            </div>
+          </div>
+          <div class="history-list" id="historyList">
+            <div class="history-empty">No rolls yet. Click Roll Pool to begin.</div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">Copied roll summary to clipboard!</div>
+
+  <script>
+    (function () {
+      const state = {
+        sides: 6,
+        totalDice: 3,
+        target: 3,
+        mode: 'exact',
+        selectedIndex: 2,
+        rolls: [],          // array of rolled integers
+        rolledSuccesses: 0, // count of rolls >= target
+        isRolling: false,
+        soundEnabled: true,
+        history: []
+      };
+
+      const els = {
+        sidesInput: document.getElementById('sidesInput'),
+        sidesSlider: document.getElementById('sidesSlider'),
+        polyButtons: document.querySelectorAll('#polyButtons .dice-btn'),
+        diceInput: document.getElementById('diceInput'),
+        diceSlider: document.getElementById('diceSlider'),
+        targetInput: document.getElementById('targetInput'),
+        targetSlider: document.getElementById('targetSlider'),
+        maxTargetLabel: document.getElementById('maxTargetLabel'),
+        maxTargetTick: document.getElementById('maxTargetTick'),
+        facePreview: document.getElementById('facePreview'),
+        // Formula
+        fSides: document.getElementById('fSides'),
+        fSides2: document.getElementById('fSides2'),
+        fSides3: document.getElementById('fSides3'),
+        fTarget: document.getElementById('fTarget'),
+        fWinFaces: document.getElementById('fWinFaces'),
+        fProb: document.getElementById('fProb'),
+        fN: document.getElementById('fN'),
+        fN2: document.getElementById('fN2'),
+        // Tray
+        trayPoolBadge: document.getElementById('trayPoolBadge'),
+        diceTray: document.getElementById('diceTray'),
+        rollPoolBtn: document.getElementById('rollPoolBtn'),
+        rerollFailedBtn: document.getElementById('rerollFailedBtn'),
+        rollVerdictPill: document.getElementById('rollVerdictPill'),
+        // KPIs
+        kpiRolledSuccesses: document.getElementById('kpiRolledSuccesses'),
+        kpiExpectedSub: document.getElementById('kpiExpectedSub'),
+        kpiRollSum: document.getElementById('kpiRollSum'),
+        kpiRollAvg: document.getElementById('kpiRollAvg'),
+        kpiRollExactProb: document.getElementById('kpiRollExactProb'),
+        kpiRollWays: document.getElementById('kpiRollWays'),
+        kpiRollAtLeast: document.getElementById('kpiRollAtLeast'),
+        kpiSingleProb: document.getElementById('kpiSingleProb'),
+        kpiSingleFrac: document.getElementById('kpiSingleFrac'),
+        // Chart
+        chartHeading: document.getElementById('chartHeading'),
+        btnModeExact: document.getElementById('btnModeExact'),
+        btnModeCum: document.getElementById('btnModeCum'),
+        distChart: document.getElementById('distChart'),
+        // Inspector
+        inspOutcome: document.getElementById('inspOutcome'),
+        inspExact: document.getElementById('inspExact'),
+        inspAtLeast: document.getElementById('inspAtLeast'),
+        inspAtMost: document.getElementById('inspAtMost'),
+        inspComb: document.getElementById('inspComb'),
+        // History & Actions
+        historyList: document.getElementById('historyList'),
+        copyRollBtn: document.getElementById('copyRollBtn'),
+        clearHistoryBtn: document.getElementById('clearHistoryBtn'),
+        soundToggleBtn: document.getElementById('soundToggleBtn'),
+        presetEx1: document.getElementById('presetEx1'),
+        presetEx2: document.getElementById('presetEx2'),
+        presetEx3: document.getElementById('presetEx3'),
+        toast: document.getElementById('toast')
+      };
+
+      let currentDistribution = [];
+      let audioCtx = null;
+
+      function getAudioContext() {
+        if (!audioCtx && (window.AudioContext || window.webkitAudioContext)) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new Ctx();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(() => {});
+        }
+        return audioCtx;
+      }
+
+      function playDiceSound(successCount, totalCount) {
+        if (!state.soundEnabled) return;
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        try {
+          const now = ctx.currentTime;
+          // Subtle percussive clatter clicks
+          for (let c = 0; c < 3; c++) {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(180 + Math.random() * 140, now + c * 0.055);
+            osc.frequency.exponentialRampToValueAtTime(70, now + c * 0.055 + 0.05);
+            gain.gain.setValueAtTime(0.08, now + c * 0.055);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + c * 0.055 + 0.05);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + c * 0.055);
+            osc.stop(now + c * 0.055 + 0.055);
+          }
+          // Outcome chime
+          const chime = ctx.createOscillator();
+          const chimeGain = ctx.createGain();
+          chime.type = 'sine';
+          const baseFreq = successCount > 0 ? 440 + Math.min(successCount, 6) * 45 : 220;
+          chime.frequency.setValueAtTime(baseFreq, now + 0.18);
+          chimeGain.gain.setValueAtTime(0.06, now + 0.18);
+          chimeGain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+          chime.connect(chimeGain);
+          chimeGain.connect(ctx.destination);
+          chime.start(now + 0.18);
+          chime.stop(now + 0.43);
+        } catch (e) {
+          // Ignore audio errors
+        }
+      }
+
+      function combinations(n, k) {
+        if (k < 0 || k > n) return 0;
+        if (k === 0 || k === n) return 1;
+        if (k > n / 2) k = n - k;
+        let res = 1;
+        for (let i = 1; i <= k; i++) {
+          res = (res * (n - i + 1)) / i;
+        }
+        return Math.round(res);
+      }
+
+      function round4(num) {
+        return Math.round((num + Number.EPSILON) * 10000) / 10000;
+      }
+
+      function calculateDistribution(n, totalDice, aboveNum) {
+        const winningFaces = n + 1 - aboveNum;
+        const p = winningFaces / n;
+        const q = 1 - p;
+
+        const rows = [];
+        for (let i = 0; i <= totalDice; i++) {
+          const comb = combinations(totalDice, i);
+          const pTerm = i === 0 ? 1 : Math.pow(p, i);
+          const qTerm = totalDice - i === 0 ? 1 : Math.pow(q, totalDice - i);
+          const exactProb = comb * pTerm * qTerm;
+
+          rows.push({
+            i,
+            comb,
+            exact: exactProb,
+            exactRounded: round4(exactProb),
+            atLeast: 0,
+            atMost: 0
+          });
+        }
+
+        let runningAtMost = 0;
+        for (let i = 0; i <= totalDice; i++) {
+          runningAtMost += rows[i].exact;
+          rows[i].atMost = Math.min(1, runningAtMost);
+        }
+
+        let runningAtLeast = 0;
+        for (let i = totalDice; i >= 0; i--) {
+          runningAtLeast += rows[i].exact;
+          rows[i].atLeast = Math.min(1, runningAtLeast);
+        }
+
+        return { p, winningFaces, rows };
+      }
+
+      function rollSingleDie(sides) {
+        return Math.floor(Math.random() * sides) + 1;
+      }
+
+      function syncControls() {
+        state.sides = Math.max(2, Math.min(100, parseInt(state.sides, 10) || 6));
+        state.totalDice = Math.max(1, Math.min(30, parseInt(state.totalDice, 10) || 1));
+        state.target = Math.max(1, Math.min(state.sides, parseInt(state.target, 10) || 1));
+
+        els.sidesInput.value = state.sides;
+        els.sidesSlider.value = state.sides;
+        els.diceInput.value = state.totalDice;
+        els.diceSlider.value = state.totalDice;
+
+        els.targetInput.max = state.sides;
+        els.targetSlider.max = state.sides;
+        els.targetInput.value = state.target;
+        els.targetSlider.value = state.target;
+
+        els.maxTargetLabel.textContent = state.sides;
+        els.maxTargetTick.textContent = `${state.sides} (Max)`;
+        els.trayPoolBadge.textContent = `${state.totalDice}d${state.sides} \u2265 ${state.target}`;
+
+        els.polyButtons.forEach(btn => {
+          const btnSides = parseInt(btn.getAttribute('data-sides'), 10);
+          btn.classList.toggle('active', btnSides === state.sides);
+        });
+
+        renderFacePreview();
+      }
+
+      function renderFacePreview() {
+        els.facePreview.innerHTML = '';
+        if (state.sides <= 20) {
+          for (let f = 1; f <= state.sides; f++) {
+            const chip = document.createElement('span');
+            chip.className = 'face-chip' + (f >= state.target ? ' success' : '');
+            chip.textContent = f;
+            els.facePreview.appendChild(chip);
+          }
+        } else {
+          const failChip = document.createElement('span');
+          failChip.className = 'face-chip';
+          failChip.textContent = state.target > 1 ? `1–${state.target - 1}: Fail` : 'None: Fail';
+
+          const succChip = document.createElement('span');
+          succChip.className = 'face-chip success';
+          succChip.textContent = state.target === state.sides
+            ? `${state.sides}: Success`
+            : `${state.target}–${state.sides}: Success`;
+
+          els.facePreview.appendChild(failChip);
+          els.facePreview.appendChild(succChip);
+        }
+      }
+
+      function getDieSvgShape(sides) {
+        if (sides === 4) {
+          return `<svg class="die-shape-svg" viewBox="0 0 44 44" fill="none"><polygon points="22,4 40,38 4,38" stroke="currentColor" stroke-width="2" fill="rgba(15,23,42,0.7)"/></svg>`;
+        }
+        if (sides === 8) {
+          return `<svg class="die-shape-svg" viewBox="0 0 44 44" fill="none"><polygon points="22,3 41,22 22,41 3,22" stroke="currentColor" stroke-width="2" fill="rgba(15,23,42,0.7)"/></svg>`;
+        }
+        if (sides === 10 || sides === 100) {
+          return `<svg class="die-shape-svg" viewBox="0 0 44 44" fill="none"><polygon points="22,3 39,18 22,41 5,18" stroke="currentColor" stroke-width="2" fill="rgba(15,23,42,0.7)"/></svg>`;
+        }
+        if (sides === 12) {
+          return `<svg class="die-shape-svg" viewBox="0 0 44 44" fill="none"><polygon points="22,3 39,15 33,37 11,37 5,15" stroke="currentColor" stroke-width="2" fill="rgba(15,23,42,0.7)"/></svg>`;
+        }
+        if (sides === 20) {
+          return `<svg class="die-shape-svg" viewBox="0 0 44 44" fill="none"><polygon points="22,3 39,12.5 39,31.5 22,41 5,31.5 5,12.5" stroke="currentColor" stroke-width="2" fill="rgba(15,23,42,0.7)"/></svg>`;
+        }
+        return `<svg class="die-shape-svg" viewBox="0 0 44 44" fill="none"><rect x="5" y="5" width="34" height="34" rx="7" stroke="currentColor" stroke-width="2" fill="rgba(15,23,42,0.7)"/></svg>`;
+      }
+
+      function getD6PipHtml(val) {
+        const pipMaps = {
+          1: [0,0,0, 0,1,0, 0,0,0],
+          2: [1,0,0, 0,0,0, 0,0,1],
+          3: [1,0,0, 0,1,0, 0,0,1],
+          4: [1,0,1, 0,0,0, 1,0,1],
+          5: [1,0,1, 0,1,0, 1,0,1],
+          6: [1,0,1, 1,0,1, 1,0,1]
+        };
+        const map = pipMaps[val] || pipMaps[1];
+        return `<div class="pip-grid">${map.map(on => `<span class="pip ${on ? 'on' : ''}"></span>`).join('')}</div>`;
+      }
+
+      function renderDiceTray(animateIndices = null) {
+        els.diceTray.innerHTML = '';
+        state.rolls.forEach((val, idx) => {
+          const isSuccess = val >= state.target;
+          const isCrit = val === state.sides && isSuccess;
+          const isFumble = val === 1 && !isSuccess;
+
+          const card = document.createElement('div');
+          let cls = 'die-card ';
+          if (isCrit) cls += 'crit';
+          else if (isSuccess) cls += 'success';
+          else if (isFumble) cls += 'fumble';
+          else cls += 'fail';
+
+          if (animateIndices && animateIndices.includes(idx)) {
+            cls += ' rolling';
+          }
+
+          card.className = cls;
+          card.title = `Die #${idx + 1}: Rolled ${val} on d${state.sides} (Click to reroll)`;
+
+          let faceContent = '';
+          if (state.sides === 6) {
+            faceContent = getD6PipHtml(val);
+          } else {
+            faceContent = `${getDieSvgShape(state.sides)}<span class="die-value">${val}</span>`;
+          }
+
+          let statusText = isSuccess ? 'Hit' : 'Miss';
+          if (isCrit) statusText = 'Max!';
+          else if (isFumble) statusText = '1!';
+
+          card.innerHTML = `
+            <span class="die-reroll-hint" aria-hidden="true">&#8635;</span>
+            <div class="die-shape-wrap" style="color: ${isCrit ? '#fbbf24' : isSuccess ? '#34d399' : isFumble ? '#fb7185' : '#64748b'};">
+              ${faceContent}
+            </div>
+            <div class="die-status-label">${statusText} (${val})</div>
+          `;
+
+          card.addEventListener('click', () => {
+            if (!state.isRolling) {
+              rerollSingleDie(idx);
+            }
+          });
+
+          els.diceTray.appendChild(card);
+        });
+      }
+
+      function updateRollMetrics(p, winningFaces, rows) {
+        const successes = state.rolls.filter(v => v >= state.target).length;
+        state.rolledSuccesses = successes;
+        const totalSum = state.rolls.reduce((a, b) => a + b, 0);
+        const avg = state.rolls.length ? totalSum / state.rolls.length : 0;
+        const expected = state.totalDice * p;
+        const stdDev = Math.sqrt(state.totalDice * p * (1 - p));
+
+        const row = rows[successes] || rows[0];
+
+        els.kpiRolledSuccesses.textContent = `${successes} / ${state.totalDice}`;
+        els.kpiExpectedSub.textContent = `Expected: ${expected.toFixed(2)} (\u03bc)`;
+        els.kpiRollSum.textContent = totalSum.toLocaleString();
+        els.kpiRollAvg.textContent = `Avg: ${avg.toFixed(2)} per die`;
+        els.kpiRollExactProb.textContent = `${(row.exact * 100).toFixed(2)}%`;
+        els.kpiRollWays.textContent = `${row.comb.toLocaleString()} ${row.comb === 1 ? 'way' : 'ways'}`;
+        els.kpiRollAtLeast.textContent = `${(row.atLeast * 100).toFixed(2)}%`;
+        els.kpiSingleProb.textContent = `${(p * 100).toFixed(2)}%`;
+        els.kpiSingleFrac.textContent = `${winningFaces} / ${state.sides} faces`;
+
+        // Reroll failed button availability
+        const failCount = state.totalDice - successes;
+        els.rerollFailedBtn.disabled = failCount === 0 || state.isRolling;
+        els.rerollFailedBtn.textContent = failCount > 0 ? `Reroll Failed (${failCount})` : 'All Succeeded';
+
+        // Verdict pill
+        const diff = successes - expected;
+        els.rollVerdictPill.className = 'verdict-pill';
+        if (diff >= Math.max(0.5, stdDev * 0.6)) {
+          els.rollVerdictPill.classList.add('lucky');
+          els.rollVerdictPill.textContent = `Lucky Roll (+${diff.toFixed(2)} vs \u03bc)`;
+        } else if (diff <= -Math.max(0.5, stdDev * 0.6)) {
+          els.rollVerdictPill.classList.add('unlucky');
+          els.rollVerdictPill.textContent = `Unlucky Roll (${diff.toFixed(2)} vs \u03bc)`;
+        } else {
+          els.rollVerdictPill.classList.add('expected');
+          els.rollVerdictPill.textContent = `Near Expected (${diff >= 0 ? '+' : ''}${diff.toFixed(2)} vs \u03bc)`;
+        }
+      }
+
+      function addToHistory(actionLabel) {
+        const successes = state.rolls.filter(v => v >= state.target).length;
+        const row = currentDistribution[successes] || currentDistribution[0];
+        const entry = {
+          id: state.history.length + 1,
+          pool: `${state.totalDice}d${state.sides} \u2265 ${state.target}`,
+          rolls: [...state.rolls],
+          sides: state.sides,
+          target: state.target,
+          successes,
+          exactPct: (row.exact * 100).toFixed(2),
+          action: actionLabel
+        };
+        state.history.unshift(entry);
+        if (state.history.length > 25) state.history.pop();
+        renderHistory();
+      }
+
+      function renderHistory() {
+        if (!state.history.length) {
+          els.historyList.innerHTML = '<div class="history-empty">No rolls yet. Click Roll Pool to begin.</div>';
+          return;
+        }
+        els.historyList.innerHTML = '';
+        state.history.forEach((item, idx) => {
+          const div = document.createElement('div');
+          div.className = 'history-item';
+
+          const pillsHtml = item.rolls.map(v => {
+            let pCls = 'mini-die-pill';
+            if (v >= item.target) {
+              pCls += v === item.sides ? ' crit' : ' hit';
+            }
+            return `<span class="${pCls}">${v}</span>`;
+          }).join('');
+
+          div.innerHTML = `
+            <div class="history-meta">
+              <span style="color: var(--text-muted); font-size: 0.75rem;">#${state.history.length - idx}</span>
+              <span class="history-pool-tag">${item.pool}</span>
+              <span style="color: var(--accent-emerald); font-weight: 700;">${item.successes}/${item.rolls.length} hits</span>
+              <span style="color: var(--text-muted); font-size: 0.75rem;">(${item.exactPct}% odds)</span>
+            </div>
+            <div class="history-dice-pills">${pillsHtml}</div>
+          `;
+          els.historyList.appendChild(div);
+        });
+      }
+
+      function executeRoll(indicesToRoll, actionLabel = 'Full Roll') {
+        if (state.isRolling) return;
+        state.isRolling = true;
+        els.rollPoolBtn.disabled = true;
+        els.rerollFailedBtn.disabled = true;
+
+        const indices = indicesToRoll || state.rolls.map((_, i) => i);
+        let ticks = 0;
+        const maxTicks = 6;
+
+        const interval = setInterval(() => {
+          indices.forEach(i => {
+            state.rolls[i] = rollSingleDie(state.sides);
+          });
+          renderDiceTray(indices);
+          ticks++;
+          if (ticks >= maxTicks) {
+            clearInterval(interval);
+            state.isRolling = false;
+            els.rollPoolBtn.disabled = false;
+
+            const { p, winningFaces, rows } = calculateDistribution(state.sides, state.totalDice, state.target);
+            currentDistribution = rows;
+            const successes = state.rolls.filter(v => v >= state.target).length;
+            state.selectedIndex = successes;
+
+            renderDiceTray(null);
+            updateRollMetrics(p, winningFaces, rows);
+            renderChart(rows);
+            updateInspector();
+            addToHistory(actionLabel);
+            playDiceSound(successes, state.totalDice);
+          }
+        }, 45);
+      }
+
+      function rerollSingleDie(idx) {
+        executeRoll([idx], `Reroll Die #${idx + 1}`);
+      }
+
+      function renderChart(rows) {
+        const svg = els.distChart;
+        const rect = svg.getBoundingClientRect();
+        const width = Math.max(300, rect.width || 680);
+        const height = Math.max(220, rect.height || 290);
+
+        const pad = { top: 28, right: 16, bottom: 38, left: 48 };
+        const plotW = width - pad.left - pad.right;
+        const plotH = height - pad.top - pad.bottom;
+
+        const isExact = state.mode === 'exact';
+        const values = rows.map(r => (isExact ? r.exact : r.atLeast));
+        const maxVal = isExact ? Math.max(0.05, ...values) * 1.15 : 1.05;
+
+        while (svg.firstChild) {
+          svg.removeChild(svg.firstChild);
+        }
+
+        const svgNS = 'http://www.w3.org/2000/svg';
+
+        const tickCount = 5;
+        for (let t = 0; t <= tickCount; t++) {
+          const ratio = t / tickCount;
+          const val = ratio * maxVal;
+          if (!isExact && val > 1.001) continue;
+          const y = pad.top + plotH - (val / maxVal) * plotH;
+
+          const line = document.createElementNS(svgNS, 'line');
+          line.setAttribute('x1', pad.left);
+          line.setAttribute('x2', pad.left + plotW);
+          line.setAttribute('y1', y);
+          line.setAttribute('y2', y);
+          line.setAttribute('stroke', '#1e293b');
+          line.setAttribute('stroke-width', '1');
+          svg.appendChild(line);
+
+          const label = document.createElementNS(svgNS, 'text');
+          label.setAttribute('x', pad.left - 8);
+          label.setAttribute('y', y + 4);
+          label.setAttribute('text-anchor', 'end');
+          label.setAttribute('fill', '#64748b');
+          label.setAttribute('font-size', '11');
+          label.setAttribute('font-family', 'var(--font-mono)');
+          label.textContent = `${Math.round(val * 100)}%`;
+          svg.appendChild(label);
+        }
+
+        const xAxis = document.createElementNS(svgNS, 'line');
+        xAxis.setAttribute('x1', pad.left);
+        xAxis.setAttribute('x2', pad.left + plotW);
+        xAxis.setAttribute('y1', pad.top + plotH);
+        xAxis.setAttribute('y2', pad.top + plotH);
+        xAxis.setAttribute('stroke', '#334155');
+        xAxis.setAttribute('stroke-width', '1.5');
+        svg.appendChild(xAxis);
+
+        const count = rows.length;
+        const slotW = plotW / count;
+        const barW = Math.max(4, Math.min(48, slotW * 0.68));
+        const labelStep = count > 20 ? 2 : 1;
+
+        rows.forEach((row, idx) => {
+          const val = isExact ? row.exact : row.atLeast;
+          const barH = Math.max(2, (val / maxVal) * plotH);
+          const x = pad.left + idx * slotW + (slotW - barW) / 2;
+          const y = pad.top + plotH - barH;
+          const isSelected = idx === state.selectedIndex;
+          const isRolledOutcome = idx === state.rolledSuccesses;
+
+          let fillColor = isExact ? '#10b981' : '#6366f1';
+          if (isRolledOutcome) {
+            fillColor = '#f59e0b';
+          } else if (isSelected) {
+            fillColor = isExact ? '#34d399' : '#818cf8';
+          }
+
+          const bar = document.createElementNS(svgNS, 'rect');
+          bar.setAttribute('x', x);
+          bar.setAttribute('y', y);
+          bar.setAttribute('width', barW);
+          bar.setAttribute('height', barH);
+          bar.setAttribute('rx', Math.min(4, barW / 3));
+          bar.setAttribute('fill', fillColor);
+          bar.setAttribute('opacity', isRolledOutcome || isSelected ? '1' : '0.78');
+          if (isSelected || isRolledOutcome) {
+            bar.setAttribute('stroke', isRolledOutcome ? '#fef3c7' : '#ffffff');
+            bar.setAttribute('stroke-width', isRolledOutcome ? '2' : '1.5');
+          }
+          bar.classList.add('chart-bar');
+          svg.appendChild(bar);
+
+          if (isRolledOutcome) {
+            const marker = document.createElementNS(svgNS, 'text');
+            marker.setAttribute('x', x + barW / 2);
+            marker.setAttribute('y', Math.max(12, y - 16));
+            marker.setAttribute('text-anchor', 'middle');
+            marker.setAttribute('fill', '#fbbf24');
+            marker.setAttribute('font-size', '9.5');
+            marker.setAttribute('font-weight', '800');
+            marker.setAttribute('font-family', 'var(--font-mono)');
+            marker.textContent = 'ROLLED';
+            svg.appendChild(marker);
+          }
+
+          if (count <= 14 || isSelected || isRolledOutcome) {
+            const valText = document.createElementNS(svgNS, 'text');
+            valText.setAttribute('x', x + barW / 2);
+            valText.setAttribute('y', y - 5);
+            valText.setAttribute('text-anchor', 'middle');
+            valText.setAttribute('fill', isRolledOutcome ? '#fde68a' : isSelected ? '#ffffff' : '#94a3b8');
+            valText.setAttribute('font-size', count > 10 ? '9.5' : '11');
+            valText.setAttribute('font-weight', isSelected || isRolledOutcome ? '700' : '500');
+            valText.setAttribute('font-family', 'var(--font-mono)');
+            valText.textContent = `${(val * 100).toFixed(count > 10 ? 0 : 1)}%`;
+            svg.appendChild(valText);
+          }
+
+          if (idx % labelStep === 0 || isSelected || isRolledOutcome) {
+            const xLabel = document.createElementNS(svgNS, 'text');
+            xLabel.setAttribute('x', x + barW / 2);
+            xLabel.setAttribute('y', pad.top + plotH + 18);
+            xLabel.setAttribute('text-anchor', 'middle');
+            xLabel.setAttribute('fill', isRolledOutcome ? '#fbbf24' : isSelected ? '#ffffff' : '#94a3b8');
+            xLabel.setAttribute('font-size', '11');
+            xLabel.setAttribute('font-weight', isSelected || isRolledOutcome ? '700' : '400');
+            xLabel.setAttribute('font-family', 'var(--font-mono)');
+            xLabel.textContent = idx;
+            svg.appendChild(xLabel);
+          }
+
+          const hitRect = document.createElementNS(svgNS, 'rect');
+          hitRect.setAttribute('x', pad.left + idx * slotW);
+          hitRect.setAttribute('y', pad.top);
+          hitRect.setAttribute('width', slotW);
+          hitRect.setAttribute('height', plotH + 24);
+          hitRect.classList.add('chart-bar-hit');
+
+          const selectHandler = () => {
+            if (state.selectedIndex !== idx) {
+              state.selectedIndex = idx;
+              updateInspector();
+              renderChart(currentDistribution);
+            }
+          };
+
+          hitRect.addEventListener('mouseenter', selectHandler);
+          hitRect.addEventListener('click', selectHandler);
+          svg.appendChild(hitRect);
+        });
+
+        const axisTitle = document.createElementNS(svgNS, 'text');
+        axisTitle.setAttribute('x', pad.left + plotW / 2);
+        axisTitle.setAttribute('y', height - 2);
+        axisTitle.setAttribute('text-anchor', 'middle');
+        axisTitle.setAttribute('fill', '#64748b');
+        axisTitle.setAttribute('font-size', '11');
+        axisTitle.textContent = 'Number of Successful Dice (i) — Amber Bar = Your Current Roll';
+        svg.appendChild(axisTitle);
+      }
+
+      function updateInspector() {
+        if (!currentDistribution.length) return;
+        const idx = Math.max(0, Math.min(currentDistribution.length - 1, state.selectedIndex));
+        state.selectedIndex = idx;
+        const row = currentDistribution[idx];
+
+        els.inspOutcome.textContent = `${row.i} ${row.i === 1 ? 'Success' : 'Successes'}`;
+        els.inspExact.textContent = `${row.exactRounded.toFixed(4)} (${(row.exact * 100).toFixed(2)}%)`;
+        els.inspAtLeast.textContent = `${round4(row.atLeast).toFixed(4)} (${(row.atLeast * 100).toFixed(2)}%)`;
+        els.inspAtMost.textContent = `${round4(row.atMost).toFixed(4)} (${(row.atMost * 100).toFixed(2)}%)`;
+        els.inspComb.textContent = row.comb.toLocaleString();
+      }
+
+      function updateAll(rerollPool = false) {
+        syncControls();
+        const { p, winningFaces, rows } = calculateDistribution(state.sides, state.totalDice, state.target);
+        currentDistribution = rows;
+
+        els.fSides.textContent = state.sides;
+        els.fSides2.textContent = state.sides;
+        els.fSides3.textContent = state.sides;
+        els.fTarget.textContent = state.target;
+        els.fWinFaces.textContent = winningFaces;
+        els.fProb.textContent = round4(p).toFixed(4);
+        els.fN.textContent = state.totalDice;
+        els.fN2.textContent = state.totalDice;
+
+        if (rerollPool || state.rolls.length !== state.totalDice || state.rolls.some(v => v > state.sides)) {
+          state.rolls = Array.from({ length: state.totalDice }, () => rollSingleDie(state.sides));
+        }
+
+        const successes = state.rolls.filter(v => v >= state.target).length;
+        state.selectedIndex = successes;
+
+        renderDiceTray(null);
+        updateRollMetrics(p, winningFaces, rows);
+        renderChart(rows);
+        updateInspector();
+      }
+
+      // Listeners
+      els.sidesInput.addEventListener('input', (e) => {
+        state.sides = e.target.value;
+        updateAll(true);
+      });
+      els.sidesSlider.addEventListener('input', (e) => {
+        state.sides = e.target.value;
+        updateAll(true);
+      });
+      els.polyButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.sides = parseInt(btn.getAttribute('data-sides'), 10);
+          updateAll(true);
+        });
+      });
+
+      els.diceInput.addEventListener('input', (e) => {
+        state.totalDice = e.target.value;
+        updateAll(true);
+      });
+      els.diceSlider.addEventListener('input', (e) => {
+        state.totalDice = e.target.value;
+        updateAll(true);
+      });
+
+      els.targetInput.addEventListener('input', (e) => {
+        state.target = e.target.value;
+        updateAll(false);
+      });
+      els.targetSlider.addEventListener('input', (e) => {
+        state.target = e.target.value;
+        updateAll(false);
+      });
+
+      els.rollPoolBtn.addEventListener('click', () => {
+        executeRoll(null, 'Full Roll');
+      });
+
+      els.rerollFailedBtn.addEventListener('click', () => {
+        const failedIndices = [];
+        state.rolls.forEach((v, idx) => {
+          if (v < state.target) failedIndices.push(idx);
+        });
+        if (failedIndices.length) {
+          executeRoll(failedIndices, 'Reroll Failed');
+        }
+      });
+
+      els.btnModeExact.addEventListener('click', () => {
+        state.mode = 'exact';
+        els.btnModeExact.classList.add('active-exact');
+        els.btnModeCum.classList.remove('active-cum');
+        els.chartHeading.textContent = 'Probability Distribution: Exact Successes P(X = i)';
+        renderChart(currentDistribution);
+      });
+
+      els.btnModeCum.addEventListener('click', () => {
+        state.mode = 'cumulative';
+        els.btnModeCum.classList.add('active-cum');
+        els.btnModeExact.classList.remove('active-exact');
+        els.chartHeading.textContent = 'Cumulative Distribution: At Least i Successes P(X ≥ i)';
+        renderChart(currentDistribution);
+      });
+
+      els.presetEx1.addEventListener('click', () => {
+        state.sides = 6;
+        state.totalDice = 3;
+        state.target = 3;
+        updateAll(true);
+        addToHistory('Preset d6(3, 3)');
+      });
+
+      els.presetEx2.addEventListener('click', () => {
+        state.sides = 8;
+        state.totalDice = 3;
+        state.target = 3;
+        updateAll(true);
+        addToHistory('Preset d8(3, 3)');
+      });
+
+      els.presetEx3.addEventListener('click', () => {
+        state.sides = 10;
+        state.totalDice = 5;
+        state.target = 7;
+        updateAll(true);
+        addToHistory('Preset 5d10 ≥ 7');
+      });
+
+      els.soundToggleBtn.addEventListener('click', () => {
+        state.soundEnabled = !state.soundEnabled;
+        els.soundToggleBtn.textContent = state.soundEnabled ? 'Sound: On' : 'Sound: Off';
+        els.soundToggleBtn.setAttribute('aria-pressed', String(state.soundEnabled));
+      });
+
+      els.copyRollBtn.addEventListener('click', () => {
+        const successes = state.rolls.filter(v => v >= state.target).length;
+        const text = `Rolled ${state.totalDice}d${state.sides} (>= ${state.target}): [${state.rolls.join(', ')}] -> ${successes}/${state.totalDice} successes`;
+        const tempArea = document.createElement('textarea');
+        tempArea.value = text;
+        tempArea.style.position = 'fixed';
+        tempArea.style.left = '-9999px';
+        document.body.appendChild(tempArea);
+        tempArea.select();
+        try {
+          document.execCommand('copy');
+          els.toast.classList.add('show');
+          setTimeout(() => els.toast.classList.remove('show'), 2200);
+        } catch (err) {
+          console.error('Copy failed', err);
+        }
+        document.body.removeChild(tempArea);
+      });
+
+      els.clearHistoryBtn.addEventListener('click', () => {
+        state.history = [];
+        renderHistory();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !['INPUT', 'TEXTAREA', 'BUTTON'].includes(document.activeElement.tagName)) {
+          e.preventDefault();
+          executeRoll(null, 'Full Roll');
+        }
+      });
+
+      window.addEventListener('resize', () => {
+        if (currentDistribution.length) {
+          renderChart(currentDistribution);
+        }
+      });
+
+      window.addEventListener('load', () => {
+        updateAll(true);
+        addToHistory('Initial Roll');
+      });
+    })();
+  </script>
+  <footer style="max-width: 1280px; margin: 0 auto; padding: 0 2rem 2rem; color: #94a3b8; font-size: 0.85rem; line-height: 1.6; text-align: center;">
+    Probability method based on code shared by <strong>Bob Klemm</strong> on October 23, 2025. Used with permission.
+    <a href="index.html" style="color: #34d399; margin-left: 0.5rem;">Dice Toolkit home</a>
+  </footer>
+</body>
+</html>
